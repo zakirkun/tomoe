@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"sync"
 	"time"
 )
 
@@ -25,11 +26,12 @@ func NewClient(baseURL string, timeout time.Duration, retries int, backoff time.
 func (c *Client) ParallelRequests(ctx context.Context, opts []RequestOptions) ([]*http.Response, error) {
 	results := make([]*http.Response, len(opts))
 	errCh := make(chan error, len(opts))
-	doneCh := make(chan struct{}, len(opts))
+	var wg sync.WaitGroup
 
 	for i, opt := range opts {
+		wg.Add(1)
 		go func(i int, opt RequestOptions) {
-			defer func() { doneCh <- struct{}{} }()
+			defer wg.Done()
 			res, err := c.Do(ctx, opt)
 			if err != nil {
 				errCh <- err
@@ -39,15 +41,13 @@ func (c *Client) ParallelRequests(ctx context.Context, opts []RequestOptions) ([
 		}(i, opt)
 	}
 
-	// Wait for all requests to finish
-	for i := 0; i < len(opts); i++ {
-		<-doneCh
-	}
+	go func() {
+		wg.Wait()
+		close(errCh)
+	}()
 
-	// Check for errors
-	close(errCh)
-	if len(errCh) > 0 {
-		return nil, <-errCh
+	for err := range errCh {
+		return nil, err
 	}
 
 	return results, nil
