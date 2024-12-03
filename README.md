@@ -45,12 +45,18 @@ func main() {
 		Path:   "/todos/1",
 	}
 
-	data, err := client.Do(ctx, opts)    
+	response, err := client.Do(ctx, opts)  
     if err != nil {
-		log.Fatalf("Request failed: %v", err)
+		log.Fatalf("Request Error: %v", err.Error())
 	}
+    defer response.Body.Close()
 
-    
+    body, err := io.ReadAll(response.Body)
+	if err != nil {
+        log.Fatalf("Parse Body Error: %v", err.Error())
+    }
+
+    fmt.Printf("Success: %v", string(body))
 }
 ```
 
