@@ -21,6 +21,7 @@ func TestSingle(t *testing.T) {
 	opts := RequestOptions{
 		Method: "GET",
 		Path:   "/todos/1",
+		Body:   nil,
 	}
 
 	data, err := client.Do(ctx, opts)

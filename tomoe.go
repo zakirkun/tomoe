@@ -72,7 +72,6 @@ func (c *Client) Do(ctx context.Context, opts RequestOptions) (*[]byte, error) {
 		}
 
 		lastErr = err
-		continue
 	}
 
 	return nil, fmt.Errorf("all retries failed: %v", lastErr)
@@ -94,9 +93,10 @@ func (c *Client) executeRequest(ctx context.Context, opts RequestOptions) (*[]by
 	reqURL.RawQuery = q.Encode()
 
 	// Create the request
-	req, err := http.NewRequestWithContext(ctx, opts.Method, reqURL.String(), *opts.Body)
+	req, err := http.NewRequestWithContext(ctx, opts.Method, reqURL.String(), opts.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
+		log.Println(err)
+		return nil, fmt.Errorf("failed to create request: %v", err)
 	}
 
 	// Set headers

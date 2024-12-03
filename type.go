@@ -21,5 +21,5 @@ type RequestOptions struct {
 	Method      string
 	Path        string
 	QueryParams map[string]string
-	Body        *io.Reader
+	Body        io.Reader
 }
