@@ -2,6 +2,7 @@ package tomoe
 
 import (
 	"context"
+	"io"
 	"testing"
 	"time"
 )
@@ -23,13 +24,21 @@ func TestSingle(t *testing.T) {
 		Path:   "/todos/1",
 	}
 
-	data, err := client.Do(ctx, opts)
+	response, err := client.Do(ctx, opts)
 	if err != nil {
 		t.Errorf("Single Request Error: %v", err.Error())
 		return
 	}
+	defer response.Body.Close()
 
-	t.Logf("Success Response: %v", string(*data))
+	// Read raw body for additional processing or error messages
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		t.Errorf("Parse Body Error: %v", err.Error())
+		return
+	}
+
+	t.Logf("Success: %v", string(body))
 }
 
 func TestParrarel(t *testing.T) {
@@ -55,13 +64,25 @@ func TestParrarel(t *testing.T) {
 		{Method: "GET", Path: "/todos/3"},
 	}
 
-	data, err := client.ParallelRequests(ctx, requests)
+	responses, err := client.ParallelRequests(ctx, requests)
 	if err != nil {
 		t.Errorf("Parallel Request Error: %v", err.Error())
 		return
 	}
 
-	for i, result := range data {
-		t.Logf("Response %d: %+v\n", i+1, string(*result))
+	for i, response := range responses {
+		if err != nil {
+			t.Errorf("Single Request Error: %v", err.Error())
+			return
+		}
+		defer response.Body.Close()
+
+		// Read raw body for additional processing or error messages
+		body, err := io.ReadAll(response.Body)
+		if err != nil {
+			t.Errorf("Parse Body Error: %v", err.Error())
+			return
+		}
+		t.Logf("Response %d: %+v\n", i+1, string(body))
 	}
 }

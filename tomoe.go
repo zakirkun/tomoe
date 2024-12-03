@@ -3,7 +3,6 @@ package tomoe
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -23,8 +22,8 @@ func NewClient(baseURL string, timeout time.Duration, retries int, backoff time.
 	}
 }
 
-func (c *Client) ParallelRequests(ctx context.Context, opts []RequestOptions) ([]*[]byte, error) {
-	results := make([]*[]byte, len(opts))
+func (c *Client) ParallelRequests(ctx context.Context, opts []RequestOptions) ([]*http.Response, error) {
+	results := make([]*http.Response, len(opts))
 	errCh := make(chan error, len(opts))
 	doneCh := make(chan struct{}, len(opts))
 
@@ -54,7 +53,7 @@ func (c *Client) ParallelRequests(ctx context.Context, opts []RequestOptions) ([
 	return results, nil
 }
 
-func (c *Client) Do(ctx context.Context, opts RequestOptions) (*[]byte, error) {
+func (c *Client) Do(ctx context.Context, opts RequestOptions) (*http.Response, error) {
 	var lastErr error
 
 	for attempt := 1; attempt <= c.retries; attempt++ {
@@ -74,7 +73,7 @@ func (c *Client) Do(ctx context.Context, opts RequestOptions) (*[]byte, error) {
 	return nil, fmt.Errorf("all retries failed: %v", lastErr)
 }
 
-func (c *Client) executeRequest(ctx context.Context, opts RequestOptions) (*[]byte, error) {
+func (c *Client) executeRequest(ctx context.Context, opts RequestOptions) (*http.Response, error) {
 
 	// Construct the URL
 	reqURL, err := url.Parse(c.baseURL + opts.Path)
@@ -106,13 +105,6 @@ func (c *Client) executeRequest(ctx context.Context, opts RequestOptions) (*[]by
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
-	defer resp.Body.Close()
 
-	// Ready raw response data
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed ready body response: %w", err)
-	}
-
-	return &body, nil
+	return resp, nil
 }
