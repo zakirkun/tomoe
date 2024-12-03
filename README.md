@@ -1,4 +1,4 @@
-![TOMOE](./tomoe.png)
+<!-- ![TOMOE](./tomoe.png) -->
 
 # Tomoe: A Flexible and Fast HTTP Client Library for Go
 
