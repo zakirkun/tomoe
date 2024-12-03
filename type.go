@@ -13,7 +13,6 @@ type Client struct {
 	headers    map[string]string
 	retries    int
 	backoff    time.Duration
-	attempt    int
 }
 
 // RequestOptions defines options for the HTTP request.

@@ -11,7 +11,7 @@ import (
 )
 
 // NewClient initializes a new HTTP client with a base URL and timeout.
-func NewClient(baseURL string, timeout time.Duration, retries int, attempt int, backoff time.Duration, headers map[string]string) *Client {
+func NewClient(baseURL string, timeout time.Duration, retries int, backoff time.Duration, headers map[string]string) *Client {
 	return &Client{
 		baseURL: baseURL,
 		httpClient: &http.Client{
@@ -20,7 +20,6 @@ func NewClient(baseURL string, timeout time.Duration, retries int, attempt int, 
 		headers: headers,
 		retries: retries,
 		backoff: backoff,
-		attempt: attempt,
 	}
 }
 
@@ -58,20 +57,18 @@ func (c *Client) ParallelRequests(ctx context.Context, opts []RequestOptions) ([
 func (c *Client) Do(ctx context.Context, opts RequestOptions) (*[]byte, error) {
 	var lastErr error
 
-	for attempt := c.attempt; attempt <= c.retries; attempt++ {
-		if attempt > 0 {
-			backoff := time.Duration(attempt*attempt) * time.Duration(c.backoff)
-			time.Sleep(backoff) // Exponential backoff
+	for attempt := 1; attempt <= c.retries; attempt++ {
+		if attempt > 1 {
+			time.Sleep(c.backoff) // Exponential backoff
 		}
 
 		result, err := c.executeRequest(ctx, opts)
-		log.Printf("Result: %v", string(*result))
-		log.Printf("Error: %v", err.Error())
-		if err == nil {
-			return result, nil
+		if err != nil {
+			lastErr = fmt.Errorf("attempt %d failed: %w", attempt, err)
+			continue
 		}
 
-		lastErr = err
+		return result, nil
 	}
 
 	return nil, fmt.Errorf("all retries failed: %v", lastErr)
